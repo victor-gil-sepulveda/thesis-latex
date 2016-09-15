@@ -1,0 +1,33 @@
+\chapter{Summary of the results}
+
+In the present chapter, we aim to give a brief summary of the results obtained for each of the proposed objectives. A more detailed discussion of each of them can be found in the next chapter.
+
+\section{Technical improvement of PELE}
+
+As stated before, the results related to the first objective consists, mainly, in the production of new software, which is not open source. The code base includes the rewriting of PELE in C++, the related Python scripts, and the parallelized kernels. 
+
+As one of the main objectives of this thesis is the development of faster sampling techniques for VHTS, a significant amount of work was focused on speeding up the software. This was partly achieved by GPU acceleration of the heavier routines, where we obtained up to 24x kernel speedups. 
+
+\section{Algorithmic improvement of PELE}
+
+We have presented a new perturbation method for PELE using torsional normal modes (icNMA). We have tested the new methodology in two different systems (ubiquitin and an Src Kinase) and compared the results of the current method (ccNMA) and the new method with molecular dynamics simulations in explicit solvent. The results show that this approach is able to produce more energetically favorable perturbations than the Cartesian coordinates-based method, thus allowing to work at 300 K without the need of a system-wide minimization. The root mean square fluctuation of the residues indicates that icNMA reproduces protein flexibility better than ccNMA; however both fluctuate less than MD. The measurements of the solvent accessible surface and radius of gyration show that icNMA is able to better capture the variations of volume of the protein. Furthermore, the way it simulates the inter-domain movements of the Src kinase is more similar to MD. Finally, each icNMA iteration is faster than a PELE iteration, as it does not include the side chain prediction and global minimization steps.
+
+Some parts of the icNMA code are open source and can be found in its GitHub repository\footnote{\url{https://github.com/victor-gil-sepulveda/PhD-ANMInternalCoordinates}}.
+
+
+\section[Efficient and reliable analysis]{Efficient and reliable analysis of large conformational ensembles }
+
+\subsection{Implementation of an efficient solution for the calculation of collective superimposition operations}
+We have introduced the Python package pyRMSD. It provides the Python programmer with three superimposition algorithms and up to 4 fully parallelized collective operations. One of the examples shown, the calculation of an RMSD matrix, reaches a speedup of 5x when using 6 cores and 11x using a GPU.
+
+The code of pyRMSD is open source (under MIT license) and, to the best of our knowledge, it is the first open source CUDA parallelization of this kind. Readers interested in downloading or contributing to the code can find it in its GitHub repository\footnote{\url{https://github.com/victor-gil-sepulveda/pyRMSD.git}}. Moreover, some compiled packages are hosted in the PyPI package repository\footnote{\url{https://pypi.python.org/pypi}} and can be easily installed using the \texttt{pip}\footnote{\url{https://pip.pypa.io/en/stable/}} tool, which manages the downloading, compilation, installation and the handling of dependencies.
+
+
+\subsection{Implementation of a reliable cluster analysis protocol}
+
+We have presented the Python software pyProCT which aims to be a reliable cluster analysis alternative when used as a black box. We have described how the meta-algorithm works and shown some of its features in two representative use cases. In the first one, we have been able to correctly separate the conformations of two synthetic conformational ensembles without any knowledge of their generation process. Moreover, an iterative analysis method to refine the working hypothesis has been introduced. 
+In the second use case, we have used pyProCT to eliminate the redundancy of a large DNA-ligand simulation and obtain the best ligand clusters. Our results correlate well with the clusters obtained in previous works using a kinetic analysis. Finally, we have shown how pyProCT can be used to reduce the size of a huge conformational ensemble (around 1 million structures) to find the most biologically relevant conformations of a protein folding simulation. 
+
+On the technical side, pyProCT also takes advantage of parallel architectures (multicore or distributed architectures) by using a parallel task scheduler. The code is also open source (under MIT license) and can be found in its public GitHub repositories\footnote{\url{https://github.com/victor-gil-sepulveda/pyProCT} and \url{https://github.com/victor-gil-sepulveda/pyProCT-GUI}}. Both pyProCT and its GUI are also available in the PyPI repository and can be installed easily using the \texttt{pip} tool.
+
+\newpage

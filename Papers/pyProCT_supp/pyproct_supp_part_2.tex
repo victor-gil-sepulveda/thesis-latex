@@ -1,0 +1,353 @@
+\subsection{Clustering properties and quality functions}
+\label{sec:pyproct_supp_2}
+
+pyProCT implements functions which goal is to retrieve information
+from the generated clusterings to evaluate them. Some of these functions
+retrieve properties from the clustering (\textquotedblleft properties\textquotedblright ),
+other functions evaluate the quality and form the objective part of the
+clustering hypothesis. In this section we will define and formalize
+both of them.
+
+
+\subsubsection{General definitions}
+
+\begin{enumerate}
+\item $D$ is a set containing all the elements of the dataset with $\abs D$
+number of elements (number of datum in the dataset e.g. conformations,
+distances, etc). 
+\item $C=\{C_{1},C_{2},\dotsc C_{k}\}$ is a clustering of $k$ clusters,
+where $\abs C$ is its number of clusters ( $\abs C=k$ in this case)
+and $|C_{i}|$ is the number of elements of cluster $i$. Also:
+\begin{equation}
+\forall C_{i},C_{j}\in C,\quad i\neq j\quad C_{i}\cap C_{j}\equiv\emptyset
+\end{equation}
+
+\item $D_{C}\subseteq D$ is the set of clustered elements, which can differ
+from the initial set if some elements were considered as noise and
+thus discarded.
+\begin{eqnarray}
+D_{C} & \equiv & \bigcup_{i=1}^{k}C_{i},
+\end{eqnarray}
+
+\item $d(a,b)$ is a distance metric (dissimilarity function) applied to
+an element $a\in D$ and an element $b\in D$.
+\item $m_{i}$ is the medoid of cluster $C_{i}$ so that:
+\begin{equation}
+m_{i}\in C_{i}
+\end{equation}
+\begin{equation}
+\forall a,b\neq m_{i}\quad a,b\in C_{i}\quad d(a,b)\geq d(a,m)\wedge d(a,b)\geq d(b,m)
+\end{equation}
+
+\item As stated before singleton clustering is a clustering with one cluster
+that holds all the elements of the dataset. In a trivial clustering,
+each element of the dataset forms its own clustering.
+\begin{equation}
+\abs C_{singleton}=1
+\end{equation}
+\begin{equation}
+\abs C_{trivial}=\abs{D_{C}}
+\end{equation}
+
+\end{enumerate}
+
+\subsubsection{Properties}
+
+The properties are functions that allow users to query about simple
+traits and statistics of the clustering. The information returned
+by this functions is purely descriptive and, in general, not usable
+for evaluation purposes. Eight properties have been defined:
+
+\begin{description}
+\item [{Details~(String)}] Returns a string containing information about
+the type of clustering algorithm and the parameters used to generate
+it. 
+\item [{NumClusters~(Integer)}] Returns the number of clusters ($\abs C$). 
+\item [{MeanClusterSize~(Real)}] Mean number of elements per cluster:
+
+\begin{equation}
+mcs(C)=\frac{\sum_{i=1}^{k}|C_{i}|}{\abs C}
+\end{equation}
+
+\item [{NumClusteredElems~(Integer)}] Returns the number of elements that
+were clustered. It can be lower than the initial number of elements
+if noise was eliminated. Is defined as:
+\begin{equation}
+nce(C)=\sum_{i=0}^{|C|}|C_{i}|\equiv|D_{C}|
+\end{equation}
+
+\item [{NoiseLevel~(Real)}] Calculates the ratio of clustered elements
+over the number of initial elements:
+\begin{equation}
+nl(C,D)=\frac{\sum_{i=1}^{k}|C_{i}|}{\abs D}\equiv\frac{|D_{C}|}{|D|}
+\end{equation}
+
+\item [{ClustersTo90~(Real)}] Returns the minimum number of clusters needed
+to accumulate 90\% of the clustered elements. 
+\item [{PercentInTop~(Real)}] Calculates the percentage of clustered elements
+owned by the biggest cluster. 
+\item [{PercentInTop4~(Real)}] Calculates the percentage of clustered
+elements owned by the four larger clusters.
+\end{description}
+
+\subsubsection{Quality functions }
+
+Sometimes referred to as Clustering Validity Indices (CVI), are functions
+which aim is to tell at which degree clusterings are an artificial
+partition or reflect the real inner structure of the dataset (assuming
+that it exists). Quality functions must use only internal information
+of the clustering, that is, not to be based on a solution that is
+considered correct.
+
+The following are some initial definitions that will help us to characterize
+them:
+\crparagraph{Within cluster distance} The sum of all distances inside a cluster.
+
+\begin{equation}
+wd(C_{i})=\sum_{a,b\in C_{i}}d(a,b)
+\end{equation}
+
+\crparagraph{Between cluster distance} Sum of the pairwise distances between elements
+belonging to two different clusters.
+\begin{equation}
+bd(C_{i},C_{j})=\sum_{a\in C_{i}}\sum_{b\in C_{j}}d(a,b)
+\end{equation}
+
+\crparagraph{Average~distance} Average of all pairwise distances between the elements
+inside a cluster.
+
+\begin{equation}
+avg(C_{i})=\frac{wd(C_{i})}{|C_{i}|}
+\end{equation}
+
+\crparagraph{Standard~deviation~of~distance} The standard deviation of all
+pairwise distances of the elements inside a cluster.
+
+\begin{equation}
+stdev(C_{i})=\sqrt{\frac{\text{1}}{|C_{i}|}\sum_{a\in C_{i}}d^{2}(a,m_{i})}
+\end{equation}
+
+\subsubsubsection[Cohesion]{Cohesion \cite{michael_introduction_????}}
+
+Is a measure of cluster compactness. The cohesion factor measures
+the inner similarity of a cluster. Its value for one cluster is calculated
+by summing up the distance of all elements belonging to that cluster.
+Its value for a clustering can be defined as the sum of its clusters
+partial cohesions weighted by the inverse of the cluster size. Due
+to the use of dissimilarity metrics, the interpretation of cohesion
+can be misleading: the smaller its value, the more compact the clusters
+are.
+
+\begin{equation}
+Ch(C)=\sum_{C_{i}\in C}\frac{\text{1}}{C_{i}}wd(C_{i})
+\end{equation}
+
+
+A cohesion value of 0 can be obtained with the singleton clustering.
+It reaches its maximum value in a trivial clustering ($|D_{C}|^{-1}wd(D_{C})$).
+
+Te actual implementation in pyProCT is a more intuitive redefinition of Cohesion, as 
+an increment of cluster compactness will also increase this index value:
+
+\begin{equation}
+Ch(C)=1-\frac{Ch(C)}{|D_{C}|^{-1}wd(D_{C})}
+\end{equation}
+
+Its value ranges between 0 and 1.
+
+
+\subsubsubsection[Separation]{Separation \cite{michael_introduction_????}}
+
+Measures how distinct a cluster is from other clusters (how isolated
+a cluster is from the others). In practice, it calculates the sum
+of distances weighted by its cohesion:
+
+\begin{equation} Sep(C)=\sum_{\substack{i=1\\ j>i}}^{k} \frac{bd(C_i,C_j)}{Ch(C_i)} \end{equation}
+
+When its value increases, cluster separation increases. Its value
+ranges from 0 (trivial clustering) to infinity (singleton clustering,
+which implies $Ch(C_{i})\equiv0$.
+
+\subsubsubsection[Compactness]{Compactness \cite{he_quantitative_2004-1}}
+
+Compares the standard deviation (std. dev.) of the clustered dataset
+(std. dev. of its clusters) with the std. dev. of the whole dataset.
+Note that the std. dev. calculation function is defined using the
+medoid of the cluster instead of the mean point.
+
+\begin{equation}
+Cmp(C)=\frac{1}{\abs C}\sum_{i=1}^{|C|}\frac{stdev(C_{i})}{stdev(D_{C})}
+\end{equation}
+
+
+Maximizing its value minimizes compactness.
+
+
+\subsubsubsection[Gaussian Separation]{Gaussian Separation \cite{he_quantitative_2004-1}}
+
+Is a prototype-based separation index where distances are attenuated
+using an exponential. This intends to produce the same behaviour that
+some exponential kernels used to calculate the adjacency matrix in
+graph-like representations of the dataset: diminish long range distances
+and sharpen subgraphs contours.
+
+\begin{equation} 
+Gsep=\frac{1}{\abs C(\abs C-1)}\sum_{\substack{i,j = 1,\dotsc,\abs C \\ j \neq i}} e^{\frac{-d^2(m_i,m_j)}{2\sigma^2}}
+\end{equation} 
+
+Maximizing its value maximizes separation.
+
+
+\subsubsubsection[Davies-Bouldin]{Davies-Bouldin \cite{davies_cluster_1979}}
+
+A prototype-based measure that compares compactness (represented by
+the average of intra-cluster distances) and separation (distance between
+the prototypes).
+
+\begin{equation} 
+Db(C)=\frac{1}{\abs C}\sum_{i=1}^{\abs C}max\substack{j \in 1,\dotsc,\abs C \\ j \neq i} \left(\frac{avg(C_i)+avg(C_j)}{d(m_i,m_j)}\right)
+\end{equation} 
+
+Measures compactness and separation. The smaller the value is, the better
+overall quality the clustering has.
+
+
+\subsubsubsection[Dunn]{Dunn \cite{dunn_fuzzy_1973-1,kryszczuk_estimation_2010-2}}
+
+Ratio of the minimum inter-cluster distance and the maximum intra-cluster
+distance.
+
+\begin{equation}
+mind(C_i)=min_{r,t\in C_i} d(r,t)
+\end{equation}
+
+\begin{equation}
+maxd(C_i,C_j)=max_{\substack{ r \in C_i \\ t \in C_j}} d(r,t)
+\end{equation}
+
+\begin{equation}
+Dunn(C)=\frac{min_{C_i \in C}(mind(C_i))}{max_{\substack{C_i,C_j \in C\\i \neq j}} (maxd(C_i,C_j))}
+\end{equation}
+
+Dunn index evaluates compactness and separation simultaneously. Quality
+clusterings should have high values for this function.
+
+
+\subsubsubsection[Calinski-Harabasz]{Calinski-Harabasz \cite{calinski_dendrite_1974-1}}
+
+Another variation of the intra and inter-cluster distances ratio
+calculation.
+
+\begin{equation} 
+A_k(C) = \frac{1}{|D_C|-\abs C}  \sum_{i=1}^{\abs C} (|C_i|-1)(avg(D_C)-avg(C_i)) 
+\end{equation}
+
+\begin{equation} 
+CH(C)=\frac{avg(D_C)+\frac{|D_C|-\abs C}{\abs C -1}A_k}{|D_C|-A_k(C)} 
+\end{equation}
+
+It also measures compactness and separation.The higher the value is,
+the better quality the clustering has.
+
+
+\subsubsubsection[Silhouette]{Silhouette \cite{rousseeuw_silhouettes_1987-1}}
+
+Useful when distances are on a ratio scale (for instance euclidean
+distance), allowing to measure compactness and separation altogether
+by calculating the pairwise difference of inter and intracluster distances.
+The Silhouette index for a single element of a cluster can be calculated
+as:
+
+\begin{equation} 
+S(e) = \left\{ \begin{array}{l l} \frac{b(e)-a(e)}{max(a(e),b(e))} & \quad \text{if $|C_i|>1$} \\
+    0 & \quad \text{if $|C_i| \leq 1$} \end{array} \right.
+\end{equation}
+
+Where $a(e)$ is the average inner dissimilarity of its cluster and
+$b(e)$ is the outer dissimilarity of this element with the other
+clusters, calculated as follows:
+
+\begin{equation} 
+e \in C_e
+\end{equation}
+
+\begin{equation} 
+a(e)=\sum_{\substack{t\in C_e\\t \neq e}}d(e,t)
+\end{equation}
+
+\begin{equation} 
+b(e)=\sum_{\substack{\forall t\in C_i\\t \neq e \\ C_f \neq C_e}}d(e,t)
+\end{equation}
+
+Cluster and clustering values for this index can be calculated as
+the cluster average and global average of their per-element values.
+Its value ranges from -1 (worst quality) to 1 (best quality).
+
+
+\subsubsubsection[PCAanalysis]{PCAanalysis \cite{amadei_essential_1993}}
+
+Calculates the axes of variance and gives an estimation of the amount
+of variance in each axis for each cluster. The final value of this
+index will be the average value of the variance of the major variance
+axis for each cluster. As with other compactness measures, it depends
+on the size of the clusters. The higher the value is, the less compact
+the clusters are. Measures compactness (by means of variance).
+
+
+\subsubsection{Graph cut indices}
+
+The distance relationships between elements of the clustering can
+be viewed as a similarity graph were each vertex is an element and
+edges are weighted by their distances. In general, small values for
+this functions mean good quality of the partition (almost all are
+a sum of adjacency weights). Clustering can then be seen as a
+partitioning problem where one objective graph cut function is optimized.
+First, we will need to define some helper functions. Note that,
+in this case, the distances are the edge values, and are related to the 
+adjacency matrix:
+
+\subsubsubsection{Degree of a node}
+Sum of the weights of the edges that contain this node.
+
+\begin{equation}
+deg(a)=\sum_{\forall i, b \in C_{i}} d(a,b)
+\end{equation}
+
+\subsubsubsection{Internal volume}
+Is defined as the sum of all the weights of the edges of one partition, including those that connect with other partitions). As each edge must be counted only once and internal edges are counted twice, final  must be multiplied by 0.5. Can be seen as the sum of degrees too.
+
+\begin{equation}
+vol(C_{i})= \frac{1}{2} \sum_{n\in C_{i}} deg(n)
+\end{equation}
+
+\subsubsubsection{Cut}
+Sum of the weights of the edges that have to be removed in order to separate two 
+components of the graph. Its value is 0 if both subgraphs are not connected.
+
+\begin{equation} 
+cut(C_{i})=\frac{1}{2}\sum_{i \in C_{i} , j \in \overline{C_{i}}} d(i,j) 
+\end{equation}
+
+\subsubsubsection[Normalized Cut]{Ncut (Normalized Cut) \cite{shi_normalized_2000}}
+It is mainly a separation measure. Some authors divide it by the number of clusters.
+
+\begin{equation}
+NCut(C)= \frac{\sum_{i=1}^{k}\frac{cut(C)}{vol(C_{i})}}{k}
+\end{equation}
+
+
+\subsubsubsection[MinMaxCut]{MinMaxCut \cite{ding_min-max_2001-1}}
+It is mainly a separation measure.
+
+\begin{equation}
+MinMaxCut(C)=\frac{1}{2}\sum_{i=1}^{k}\frac{cut(C_{i})}{vol(C_{i})}
+\end{equation}
+
+\subsubsubsection[RatioCut]{RatioCut \cite{hagen_new_1992}}
+It is mainly a separation measure.
+
+\begin{equation}
+RatioCut(C)=\sum_{i=1}^{k}\frac{cut(C_{i})}{|C_{i}|}
+\end{equation}
+
+

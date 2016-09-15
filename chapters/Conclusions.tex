@@ -1,0 +1,40 @@
+\chapter{Conclusions}
+
+\section{Technical improvement of PELE}
+\begin{itemize}
+\item[--] We have succeeded in implementing all the core functionalities of PELE using C++. The use of modern software engineering techniques has allowed us to better organize the code base and to introduce a test subsystem. Nowadays, PELE++ has become a piece of software which is easier to modify, understand, and extend. It is also more robust and reliable. The rewriting the code has helped us to overcome some of its previous technical limitations, such as the restrictions on the size of the systems. Also, it has allowed us to extend PELE with new solvent models, force fields, and types of biomolecules.
+\item[--] The rewriting has make it possible to adapt the code in order to take advantage of new parallel architectures and accelerators. The parallelization of the non-covalent interactions and solvent model related functions, which represent hot spots in our performance analyses, has yielded promising speedup results. These new pieces of code are currently being integrated in PELE++.   
+\item[--] PELE++ is, nowadays, the first choice for our research group. The new code has opened the doors to more ambitious developments involving machine learning and virtual reality. Also, a GUI for PELE++ is currently being created. 
+\item[--] PELE++ has seriously been considered for pharmaceutical R\&D, which illustrates the success of the project. As a matter of fact, it is currently being tested in the Department of Medicinal Chemistry of the renowned pharmaceutical company AstraZeneca. 
+\end{itemize}
+
+
+\section{Algorithmic improvement of PELE}
+\begin{itemize}
+\item[--] We have proposed a new method using torsional normal mode analysis to improve the conformational sampling of PELE. We have found that internal coordinates normal modes are more collective and robust to the changes of the elastic network.  
+\item[--] The method is able to produce more energy favorable perturbations than the current ANM-based strategy. This allows us to run simulations at 300 K without the need of complex relaxation protocols. As a consequence, the overall computational performance of the sampling is significantly improved (\around5-7x). We are currently working on the methodology to yet lower the execution times and further improving the simulation of flexibility. Thanks to the new methodology, we are attaining a good trade-off between speed and detail that will turn PELE into a good alternative to current VHTS software.
+\item[--] The new internal coordinates-based methodology is able to capture the flexibility of the backbone better than the old method. The relative magnitudes of these fluctuations correlate well with those of our (explicit solvent) MD reference simulations.
+\item[--] The new method better preserves the volume of the protein during the simulation, thus overcoming the tendency of PELE to produce compact structures in certain situations. 
+\item[--] Finally, the inter-domain movements of c-Src kinase obtained with this method are closer to those obtained with MD.   
+\end{itemize}
+
+\section[Efficient and reliable analysis]{Efficient and reliable analysis of large conformational ensembles}
+\begin{itemize}
+\item[--] We have developed a Python package which is able to perform collective superposition (and RMSD) operations of conformational ensembles one order of magnitude faster than the serial version.  
+\item[--] We have developed pyProCT, a cluster analysis software which is able to provide good results without any knowledge of cluster analysis techniques.
+\item[--] pyProCT can be successfully used in the most common use cases: to retrieve clusters from ensembles of conformations (using RMSD) and to retrieve ligand clusters (using the distance to the center of mass). As requested by users, it isnow able to load and analyze other types of data, such as numeric arrays, allowing it to perform tasks beyond its original scope.  
+\item[--] We also present a novel application to reduce the size of huge conformational ensembles by eliminating redundant structures. 
+\item[--] pyProCT has already been used in a good number of biomedical publications for the analysis of results. It is currently being applied to improve PELE ligand sampling performance. Besides, it has been used in a Partnership for Advanced Computing in Europe (PRACE) project aiming at finding innovative ways to visually represent clusters of protein conformations.
+\item[--] The code and compiled versions of both packages are available to the whole scientific community in free-access repositories. 
+\end{itemize}
+
+
+
+% ANM: When we use NMA-based methods, we are narrowing this search space to the reduced space of modes.mode selections. Must be weighted by freq.
+%<Dani, futuro> Modes change if the ligand is docked or not in Diva (Djva) dos Santos et al JCTC 2012.
+%<Kamiya> General internal coordinates. More than one molecule. Contributions of angles and bonds.
+
+\newpage
+
+
+

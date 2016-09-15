@@ -1,0 +1,215 @@
+\subsection{Results file}
+
+The results file summarizes the whole clustering process and its results.
+It contains extra information that can be processed afterwards with
+the results viewer in order to gain more insight about the used quality
+functions and criteria.
+
+
+\subsubsection{Best clustering}
+
+This section contains only one property that holds the identification string of the best
+clustering.
+\begin{lstlisting}[caption={Best clustering result ID},firstnumber=1,language=json]
+{
+	"best_clustering": String
+}
+\end{lstlisting}
+
+\begin{description}
+\item [best\_clustering] Id of the best clustering.
+\end{description}
+
+\subsubsection{Files}
+
+This section stores a list of file objects, containing the details
+of all generated files (included the results file itself):
+
+\begin{lstlisting}[caption={The file details section of the results file},firstnumber=1,language=json]
+{
+	"files": List(FileDetailsObject)
+}
+\end{lstlisting}
+A FileDetails object has the following structure:
+
+\begin{lstlisting}[caption={FileDetails object},firstnumber=1,language=json]
+{
+	"path": String,
+	"type": String in ['text','image'],
+	"description": String
+}
+\end{lstlisting}
+
+\begin{description}
+\item [{path}] Complete path of the file
+\item [{type}] `text' if the file is a human-readable txt file, or `image'
+if it is a viewable image file.
+\item [{description}] Contains a very brief description of the file contents.
+\end{description}
+
+\subsubsection{Trajectories}
+
+A list containing objects with details of the trajectories used in
+this clustering:
+
+\begin{lstlisting}[caption={The trajectory details section of results file},firstnumber=1,language=json]
+{
+	"trajectories": List(TrajectoryDetailsObject)
+}
+
+\end{lstlisting}
+
+Each TrajectoryDetails object has the following structure:
+
+\begin{lstlisting}[caption={TrajectoryDetails object},firstnumber=1,language=json]
+{
+	"source": String,
+	"conformations": Integer,
+	"atoms": Integer
+}
+\end{lstlisting}
+
+\begin{description}
+\item [{source}] Complete path of this trajectory.
+\item [{conformations}] Number of conformations (`model' sections) of
+the pdb.
+\item [{atoms}] Number of atoms of each conformation.
+\end{description}
+
+\subsubsection{Workspace}
+
+Is a copy of the same section in the parameters file.
+
+\subsubsection{Scores}
+
+Contains the score value of each criterion for all non-filtered clusterings.
+
+\begin{lstlisting}[caption={Possible score section for a clustering process that used two criteria and ended with two candidates},firstnumber=1,language=json] 
+"scores": {
+	"criterion_0": {
+		"clustering_0001": 0.9822,
+		"clustering_0002": 0.9935
+	},
+	"criterion_1": {
+		"clustering_0001": 0.9150,
+		"clustering_0002": 0.9229
+	}
+} 
+\end{lstlisting}
+
+
+\subsubsection{Timing}
+
+Compiles the values of all timer objects in a list. These can be used
+to rapidly assess the performance of the execution.
+
+A timer object has the following structure:
+
+\begin{lstlisting}[caption={Timer object},firstnumber=1,language=json]
+{
+	"name": String,
+	"elapsed": Real
+}
+\end{lstlisting}
+
+\begin{description}
+	\item [{name}] Name of the step being checked.
+	\item [{elapsed}] The duration of the step in seconds.
+\end{description}
+
+\subsubsection{Clustering information}
+
+The clustering information section is indeed composed of 2 similar
+sections: `selected' stores all non-filtered clusterings, and `not\_selected'
+holds the ones that were filtered.
+
+Both sections contain JSON objects with details of the generated clustering.
+A clustering object is indexed by its id, and contains the following
+subsections:
+
+\textbf{clustering::clusters } List(ClusterObject)
+
+A list of the clusters forming the clustering. See the input file
+section \textbf{clustering\allowbreak::generation\allowbreak::clusters }for a description
+of the format of a cluster object.
+
+\textbf{clustering::total\_number\_of\_elements} Integer
+
+The amount of clustered elements.
+
+\textbf{clustering::number\_of\_clusters} Integer
+
+The length of the clusters list.
+
+\textbf{evaluation } Evaluation
+
+An evaluation object containing the values of all calculated queries
+and quality functions for this clustering.
+
+\textbf{type} String in {[}`dbscan', `gromos', `hierarchical', `kmedoids',
+`spectral', `random'{]}
+
+Indicates which algorithm generated this clustering.
+
+\textbf{parameters} ParametersObject
+
+Parameters used by the algorithm to generate this clustering (as detailed
+in the Algorithms section).
+
+Clusterings under the `\_selected' key have slightly different
+contents. They share all fields but the `evaluation' one, which changes
+to `reasons'.
+
+\textbf{reasons } List(ReasonObject)
+
+Holds a list of reasons why the clustering was not considered for
+evaluation. each reason object looks like this:
+
+\begin{lstlisting}[caption={Reason object},
+firstnumber=1, 
+language=json, 
+breakatwhitespace=true 
+%,literate={\_}{}{0\discretionary{_}{\\}{}}
+]
+{
+    "reason": String in ["TOO_FEW_CLUSTERS",
+                        "TOO_MUCH_CLUSTERS", 
+                           "TOO_MUCH_NOISE",
+                "EQUAL_TO_OTHER_CLUSTERING"],
+    "data": ReasonDataObject
+}
+\end{lstlisting}
+
+\begin{description}
+	\item [`reason'] The reason to exclude this clustering from the evaluation
+	step. `TOO\_FEW\_CLUSTERS' and `TOO\_MUCH\_CLUSTERS' mean that the
+	number of clusters is not into the allowed range. `TOO\_MUCH\_NOISE'
+	means that the clustering had too much noise. `EQUAL\_TO\_OTHER\_CLUSTERING'
+	means that an exact clustering has been already generated (with other
+	algorithm or parameters).
+	\item [`data'] Gives details about the reason to eliminate this clustering.
+	For the first 3 cases, it will store the maximum/minimum value of the
+	range and the current value for that clustering.
+\end{description}
+
+\begin{lstlisting}[caption={This clustering was not used because it had fewer clusters \(1\) than the minimum number of clusters allowed \(6\)},firstnumber=1,language=json]
+{
+	"reason": "TOO_FEW_CLUSTERS",
+	"data": {
+		"current": 1,
+		"minimum": 6
+	}
+}
+\end{lstlisting}
+
+Data objects for `EQUAL\_TO\_OTHER\_CLUSTERING' reasons will only
+store the id of the repeated clustering.
+
+\begin{lstlisting}[caption={},firstnumber=1,language=json]
+{
+	"reason": "EQUAL_TO_OTHER_CLUSTERING",
+	"data": {
+		"id": "clustering_0003"
+	}
+}
+\end{lstlisting}

@@ -1,0 +1,357 @@
+\section{Technical improvement of PELE}
+
+\subsection{From PELE to PELE++}
+
+On its previous incarnation, PELE was using the functions of the Protein Local Optimization Program (PLOP)
+\cite{jacobson_role_2002} software package as a library. Since PLOP had been written in FORTRAN
+77-95, the most natural choice for PELE was to use the same programming language. The limitations of FORTRAN, together
+with the pragmatic but chaotic nature of academic developing, drove it to a maintainability dead-end. The refactoring
+needed to pay the accumulated ``technical debt'' was so huge that we decided to go through a complete rewriting of the code . 
+
+The author of these lines worked on this rewriting steadily for two years and a half, making more sparse contributions since then, and was in charge of the design of the software core and of its successive iterations. Given the magnitude of the
+project, a small group of technicians soon joined the development team which was leadered by Mr. Manuel Rivero Gonz\'alez
+for more than three years. This group has been renewed lately, and is now leadered by Dr. Jorge Estrada. The rewriting
+has been named PELE++ and has been the base of all the developments mentioned in this work.
+
+The old version of PELE  was an academic software, and so is PELE++. This means that the software was not only planned to be used to
+perform \textit{in silico} experiments but also as a tool to test and develop new algorithms. As a consequence, the new code
+needed to be well documented, easy to learn, easy to maintain and robust to experimental changes. The academical nature
+of the software, indeed, explains some of the design decisions taken. As a result, PELE++:
+
+\begin{itemize}
+\item Uses an Object-Oriented Programming (OOP) paradigm instead of the previous single file per module approach, which also fosters
+reusability. C++ has been chosen as the language for this new version as it implements the OOP paradigm and compiles to
+very efficient executables.
+\item Is better designed for maintainability: Design patterns and other Software Engineering techniques have been
+wittingly applied (see Fig. \ref{fig:pele_core_uml}). SOLID\footnote{Acronym for Single responsibility principle,
+Open/closed principle, Liskov substitution principle, Interface segregation principle and Dependency inversion
+principle} principles have been honored. As a side effect, testability has been improved.
+\item Is better documented: The constant turnover of new students has made it necessary to pay special attention to a proper
+documentation of code functions and classes. This shortens the time needed to train new developers so that they can
+start  to contribute to the project earlier. 
+\item Is more reliable: the code correctness can be tested at any phase of the project. An in-house testing library was
+coded, and each class owns a test suite. An automated testing protocol was implemented. 
+\item Has better performance than the old version: several algorithms were replaced with more readable and efficient
+alternatives.
+\item Is easier to extend and modify, a desirable feature as many people would use the code to test their own algorithms.
+\end{itemize}
+
+To exemplify the design changes provided, we include here a simplified UML (Unified Modelling Language) diagram (see Fig.
+\ref{fig:pele_core_uml}). The diagram shows two packages: the first describes the handling of structural
+data, while the second models the energy calculation subsystem. We have chosen to neglect several minor classes and
+methods for the sake of clarity. We can observe how creation patterns have been profusely used in this new design: the
+Builder pattern for Potential objects, the Simple Factory pattern for ForceField objects. Consider that the
+Abstract Factory pattern, used to create the diverse AtomSet descendants, is not shown here. 
+
+The AtomSet object, a group of atoms with defined geometry (coordinates) and topology (interactions), is of particular interest as
+it is involved in two different hierarchies. The first one is semantic and comes from the use of inheritance (e.g. a
+Residue is a type of Link which is a more general case of an AtomSet). The second one reveals a tree-like organization
+that emerges from a loose interpretation of the Composite pattern: the root is the Complex, a singleton object made of Chains which, in turn, are  made of Links. 
+
+The rewriting of the code has allowed us to add new features to PELE, such as the possibility of using different force fields and various solvent models, supporting the simulation of other biopolymers (e.g. DNA
+\cite{cabeza_de_vaca_new_2015}), using arbitrary sized structures and coarse-grained models and
+even performing an effective parallelization of the code. In general, this has converted PELE in a tool that is more useful for
+academical experimentation and efficient and reliable enough for industrial use. 
+
+\subsection{Performance vs. maintainability}
+
+Scientific software is the object of an open debate on performance versus readability. The development of PELE++ has shown us
+that fostering readability can save developers time and efforts at almost no performance cost, in contrast with the theories supported by other authors  \cite{larsson_algorithm_2011}. Readable code, for
+instance, allows building a better structured code base. Thanks to this, developers can have a better global view of the
+software and apply optimizations (e.g. avoid unnecessary actions). It also allows them to react faster in front of
+specification changes and augments the resiliency of the developing team to staff adjustments. 
+
+One of the most important issues we faced is the mutability of specifications, in spite of the thorough initial use case studies. This
+can be caused by the communication gap between developers and users (or stakeholders), due to their different domains of
+knowledge. As this situation can pose a great problem for long-term design, we consider that domain-driven design techniques,
+using experts' feedback to refine the model, might be of great help. 
+
+Finally, this development has taught us that,
+in order to succeed in such big projects, it is important to perform short and abundant refactoring cycles and,
+ideally, to assign development tasks to optimal-sized teams of specialized software engineers.
+
+\begin{sidewaysfigure}
+    \centering
+
+\fittopageimage{PELEppcore}
+
+\caption{Pseudo-UML diagram showing the most relevant classes in PELE++ core: the AtomSet tree which
+allows the definition of different types of molecules, the topology subsystem and the energy/potential subsystem. The
+last uses geometry (atom coordinates) and topological information to calculate the energy of an AtomSet.}
+
+\label{fig:pele_core_uml}
+
+\end{sidewaysfigure}
+
+\subsection{Optimization and Parallelization}
+
+During the last decade, Moore's law predictive power has  reached its limits, since semiconductor manufacturers have found the
+physical limits of miniaturization; CPU frequency scaling beyond that point was not
+possible and, as a consequence, cluster-based computers were the only solution left to increase the global
+computational power. This was undoubtedly the starting shot for the development of multicore CPUs in commodity
+hardware. Some years later, the graphic coprocessors of such CPUs evolved to standalone graphic cards
+(GPUs\footnote{Graphics Processing Unit}), which manycore chips were eventually adapted to perform highly parallel
+computations. Soon after, Intel presented their MIC\footnote{Many Integrated Core} architecture. Easier to program
+than GPUs and also able to perform highly parallel computations, it has rapidly become as prominent as GPUs were some years
+ago. Computational hardware evolves rapidly, and software must be able to take advantage of this evolution.
+
+One of the improvements of the PELE rewriting has been offering a code base that can be parallelized more easily than the old
+FORTRAN version.
+
+\subsubsection{Initial profilings}
+
+\begin{table}
+\centering
+\begin{tabular}{ c c c c } 
+\toprule
+~ & \multicolumn{2}{c}{Protein}  & Ligand \\
+\cline{2-4}
+Size &  Residues &  Atoms &  Atoms\\
+\midrule
+Small & 120 & 1731 & 19\\
+Medium & 583 & 9300 & 16\\
+Big & 710 & 11222 & 45\\ 
+\bottomrule
+\end{tabular}
+
+\caption{Size-related details of the systems used in the initial profilings.}
+\label{table:profile_sizes}
+\end{table}
+
+We selected three real (under study) protein-ligand systems with different sizes to use them in our test simulations. The
+number of atoms and residues of such systems is summarized in Table \ref{table:profile_sizes}. 
+
+The initial profilings used the two currently implemented implicit solvent models in order to identify  the
+most efficient one. Executions were performed in a Mare Nostrum \cite{barcelona_supercomputing_center_marenostrum_2015} node (Intel
+SandyBridge-EP E5--2670 @2.6 GHz processor). Nodes were used exclusively so that no other
+processes could interfere with the results. A control script was written for each of the systems and solvent models, and
+PELE++ was run for 100+ steps in order to enter the convergence regime. The profiling was performed using the same
+script for ten steps, being the initial conformation the last frame of previous simulations. Profiling data was then
+extracted using gprof \cite{graham_gprof_1982} and then analyzed using the visual analysis tool
+gprof2dot\footnote{https://github.com/jrfonseca/gprof2dot}. 
+
+\begin{figure}
+
+\fittopageimage{initialProfiling}
+
+\caption{A set of profiles was performed for different protein sizes and using OBC and SGB solvent. This bar plot shows the percentage of time spent in non-bonding and solvent-related calculations.}
+
+\label{fig:first_profile}
+
+\end{figure}
+
+The results showed that PELE++ spent most of the time in two kinds of functions (see Fig.
+\ref{fig:first_profile}):
+
+\begin{itemize}
+\item Functions related to the solvent model, more specifically the alpha and surface elements. It is worth noting
+that simulations using the OBC solvent model were typically faster. 
+\item Functions related to the calculation and the evaluation of non-bonding lists in order to calculate the
+electrostatic and van der Waals potential energy terms and gradient. This is common in MD, among other methods, and has been
+the topic of several other studies \cite{myung_accelerating_2010, schmid_gpu_2010, jin_cuda_2011}. 
+\end{itemize}
+From this profiling exercise, we also learned that the behaviour of PELE++ can totally change depending on the place of
+the ligand. Two different scenarios were identified: free ligand diffusion (the ligand explores the protein surface freely) and binding refinement (the ligand is already in the binding site, and a better pose is searched).
+
+\subsubsection[Non-bonding energy parallelization]{Non-bonding energy parallelization using GPUs}
+
+According to the profile results, the next logical step would have been improving the performance of the solvent-related
+functions, but the difficulty of parallelizing the SGB\footnote{First attempts were made at an early stage of the
+code, when OBC solvent was not yet available. } algorithm (due mainly to its data dependencies) lead us to focus on
+the performance improvement of NB functions first \cite{oro_gay_parallelitzacio_2012}.
+
+The main contribution of NB energy/gradient calculations to the overall time does not reside in the computational cost
+of evaluating a single interaction calculation, which is indeed quite fast, but in the huge number of calculated interactions ($\propto N^2$ where $N$ is the number of atoms). 
+
+The evaluation of these huge lists of interactions looked to be a computationally-bound problem and fit well with the
+GPGPU (General-Purpose computing on Graphics Processing Units) paradigm. Graphic Processing Units have many core
+architectures with numerous parallel calculation units that allow them to perform high-throughput calculations with ease.
+They usually have good bandwidth but elevated latencies, which can be shaded thanks to the extensive use of lightweight
+threads that allow alternating calculations with memory operations. 
+
+We wanted to adapt PELE++ code to work with this kind of accelerators using the OpenCL (Open Computing Language) and
+CUDA (Compute Unified Device Architecture) programming models. The first step was to design two new structures to pack
+the data that would eventually be sent to the device. Afterwards, we coded the GPU kernels for the energy and gradient
+calculations. The energy case is quite trivial, as each thread just calculates several NB interactions to a
+per-thread accumulator variable. The final value of the energy is calculated through a reduction of the partial energy
+values. 
+
+Conversely, parallelizing the NB gradient calculation using a GPU is not that easy. The fundamental problem is that all
+threads can potentially end writing in the same positions of the gradient (race condition) and regular strategies to
+protect concurrent access would only end penalizing performance noticeably. To illustrate this, the reader can think of
+three particles A,B and C so that particle A interacts only with particle B, and B with C. If two different threads are
+calculating AB and BC interactions, it is very likely that both try to access B's gradient positions at the same time. 
+
+The solution starts by storing the gradient partial contributions in one temporary array. As the gradient contributions
+of each atom in the interaction pair are equal but opposite, it is possible to use only half of the memory to store
+intermediate results. Once all the interactions are evaluated and the array is filled, it is  ordered by atom using
+two mapping tables (one for each interacting atom) so that each GPU thread is able to reduce all the iterations of one atom
+at a time.
+
+In order to test our code, we had two different GPUs available: an NVIDIA Tesla M2090 card (for CUDA implementation only)
+and an AMD Radeon HD 6870 card. Both cards have different technical specifications\footnote{E.g. Nvidia card has 512
+threads per block and the AMD card has 256 and no double precision support} and their results are not
+comparable. Another set of three proteins with a larger number of atoms was used with \around 1k atoms, \around 14k atoms and
+\around 30 atoms so that the calculation times of a single non-bonding list were significant.
+
+Our first estimates showed that the calculation of kernels was so fast that transference and precalculation overheads were
+making the overall performance worse than the serial version. Both data transfer and kernel execution were made asynchronous, thus
+alleviating the relative impact of that overheads. 
+
+The comparison of performance results was made at kernel and program levels. The execution time of serial and GPU
+kernels (Fig. \ref{fig:cuda_speedup}) showed speedups of up to 24x for the energy function and 12x for
+the gradient.
+
+\begin{figure}
+
+\fittopageimage{cudaKernelSpeedup}
+
+\caption{Comparison of the energy and gradient functions speedup for different protein sizes and the two
+programming models used. One of the reasons why the speedup for the medium protein is higher is because the relative
+weight of the non-bonding calculations has increased with the number of atoms.}
+
+\label{fig:cuda_speedup}
+
+\end{figure}
+
+At that time, the code was not mature enough to introduce the changes that would allow serial and accelerated versions
+to coexist. In order to obtain values for the execution of the whole program, we had to build a model of its behaviour based on the profiling studies, typical executions and our knowledge of the code.
+
+The Truncated Newton minimization is the part of the code where energy and gradient functions are called the most. The
+method consists in several iterations of a five stage protocol \cite{xie_remark_1999}, called the ``outer
+loop'', which includes some preparatory steps and the evaluation of the Hessian. The ``inner loop'' is the stage in
+which a preconditioned conjugated gradient is performed. Each minimization is usually run three times with fixed alpha
+values\footnote{Atomic property regarding the solvation model.} for performance reasons. The time needed to perform a
+minimization in the serial case can be modelled as:
+
+\begin{equation}
+T = 3 (N (t_5 + M t_5))
+\end{equation}
+
+and for the parallel case:
+
+\begin{equation}
+T = 3 (t_2 + N (t_1 + t_3 +t_4 +t_5 + M (t_1 +t_5 )))
+\end{equation}
+
+where $N$ and $M$ are the number of times the ``outer'' and ``inner loops'' are executed, $t_1$ and $t_2$ are
+the time needed to create (if applicable) and transfer atomic data structures to GPU, $t_3$ is the time required to
+generate the vector of interactions in the GPU, $t_4$ is the time needed to order the atom interaction maps and
+$t_5$ is the time needed to calculate the gradient. It is worth mentioning that non-bonding calculations are to be
+performed in both the ``outer'' and ``inner loops'', and that coordinates will be changed at each ``inner loop''
+iteration, which makes it mandatory to update their GPU memory representation. 
+
+The model allowed us to obtain a rough estimate of the execution of the whole program (Fig.
+\ref{fig:cuda_global_speedup}) in the serial and parallel case. The results showed that adding the
+CUDA implementation to PELE++ would imply a 16.3 - 27.8\% faster execution than the serial version. The expected
+performance increase for the OpenCL code was smaller, with a 13.5 - 26.7\% speed increase. However, it is not possible
+to make a fair comparison of both methods, as hardware platforms are not equivalent and, also, CUDA kernels are
+using an optimized sorting algorithm from a library, while the OpenCL sorting algorithm had to be coded from scratch.
+
+\begin{figure}
+
+\fittopageimage{cudaGlobalTheoSpeed}
+
+\caption{The global speedups have been calculated using a model. As parameters N and M range from 1
+to 65 and from 20 to 50 respectively, we decided to study the best case (faster serial execution, where N = 1 and M
+= 20) and the worst case (slower serial execution, where N = 65 and M = 50). Theoretical speedup increases to 
+decrease afterwards. This happens as a result of the changes in the relative weight of the non-bonding calculations: the weight first
+increases due to the increment in the number of atoms and then decreases since other functions, such as the covalent energy
+calculations, start to require more time. The difference between implementations is not significative.}
+
+\label{fig:cuda_global_speedup}
+
+\end{figure}
+
+
+\bigskip
+
+\subsubsection{Solvent parallelization}
+
+The performance improvement through the parallelization of solvent-related functions is currently an open project
+lead by our research group's technicians Pedro Riera and Jorge Estrada, the company
+Pharmacelera\footnote{http://www.pharmacelera.com/} and BSC's Montblanc\footnote{https://www.montblanc-project.eu/}
+project team. The most costly functions are the ones that calculate surface elements and atom alpha attributes (which
+are used when calculating energy in order to take solvation contributions into account).
+
+As mentioned before, there are currently two different solvent models included in PELE++, namely, the SGB
+\cite{ghosh_generalized_1998} and OBC models \cite{onufriev_exploring_2004}. The
+algorithm for the SGB alpha calculation function is detailed in the pseudocode below:
+
+
+\begin{lstlisting}[caption = {}, label = {}, mathescape=true,escapeinside={(*}{*)}]
+updateAlphasSGB:
+	updateSurfaceElements $O(R n^2)$
+	updateAtomAlphas $O(n)$
+	updateSASA $O(R n^2)$
+
+\end{lstlisting}
+
+The calculation of the atom alpha property depends on the previous calculation of the surface elements. This is the most
+costly function, since it depends  on the number of atoms, their neighbours and a resolution parameter (a worst-case complexity
+of $O(R n^2)$).
+
+\begin{lstlisting}[caption = {}, label = {}, mathescape=true,escapeinside={(*}{*)}]
+updateAlphasOBC:
+	for each atom:
+	ComputeOtherAtomsContribution $O(n)$
+\end{lstlisting}
+
+The OBC alpha updating method is implemented as a double loop over all atoms (a complexity of $O(n^2)$) which makes
+it simpler than SGB's (and thus easier to parallelize) and explains why its serial performance is better.
+
+\subsubsubsection{Solvent parallelization: OpenMP}
+
+Some initial attempts of parallelizing the SGB alpha calculation functions were performed using the OpenMP programming model.
+Two functions were selected: \texttt{computeSurfaceElementsOfAtom} ($O(R n)$) and \texttt{updateAtomsSurface} ($O(n^2)$) both called by
+the \texttt{updateSurfaceElements} function. 
+
+Tests were performed using a medium size system (4284 protein atoms and 69 ligand atoms) and an Intel SandyBridge-EP
+E5--2670 (@2.6 GHz) processor. The best results were obtained using eight threads and threw overall speedups of \around1.5x for
+the refinement and free ligand diffusion simulations. \ignore{hl{los resultados no tienen en cuenta
+que el NB tb este paralelizado, por otro lado se tendra que ver si, en el segundo caso, hay error de medida ya que el
+speedup es del orden del speedup maximo teorico, aunque Pedro dice que no}}
+
+\subsubsubsection{Solvent parallelization: OpenCL}
+
+The parallelization of SGB solvent functions has been currently abandoned in favour of OBC functions due to their
+greater simplicity and better serial performance. Pharmacelera engineers have focused on parallelizing it using the
+OpenCL programming model and have devised 3 parallelization strategies:
+
+\begin{itemize}
+\item Parallelization of the inner loop (\texttt{ComputeOtherAtomsContributions} function) (method 1).
+\item Parallelization of the outer loop (\texttt{updateAlphas} function) (method 2).
+\item Precalculation of atom pairs and parallelization over these pairs (method 3).
+\end{itemize}
+
+The first and second strategies have a lower impact on the code, while the third makes a better use of the GPU by improving the
+load balance. 
+
+The tests have been performed on a workstation equipped with an AMD FirePro W5100 GPU card. The results, using the
+medium and big size proteins employed in the initial profilings, are promising, especially in the case of the third
+strategy which seems to have the best performance (see Fig. \ref{fig:solvent_speedup} ).
+
+\begin{figure}
+
+\fittopageimage{pharmaccelera_speedup}
+
+\caption{Kernel speedup for each of the methods and proteins tested. Methods 2 and 3 seem to obtain an equivalent efficiency improvement. }
+
+\label{fig:solvent_speedup}
+
+\end{figure}
+
+\subsubsection{Montblanc and other projects }
+
+Nowadays, the main obstacle to projecting Exascale systems is energy consumption. The Montblanc project aims at the
+creation of an energy-efficient and scalable supercomputer using ARM\footnote{Advanced RISC (Reduced Instruction Set
+Computing) Machine} technology. Some of the parallelization techniques explained before are currently being tested in
+this novel architecture.
+
+Finally, some parts of the code are currently being ported to the CUDA programming model as part of the CUDA Center of
+Excellence program from NVIDIA.
+
+\newpage
+
+
+

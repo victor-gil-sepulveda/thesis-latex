@@ -1,0 +1,68 @@
+\subsection{Input script}
+
+pyProCT uses as input a human-readable JSON text file. Its file
+extension can be arbitrarily chosen, however pyProCT will generally
+produce this kind of files with a `.json' extension.
+
+The input file describes how the software interacts with the underlying
+hardware where it is being executed, how the clustering exploration
+will be performed, and finally, which kind of post process operations
+will be performed after the clustering has been obtained. This section
+will be structured in 4 subsections, one for each of the main subsections
+of the script (`global', `data', `clustering' and `postprocess').
+
+Unless otherwise specified, each property or object will be represented
+by a descriptor. This descriptor contains the label of the property
+or JSON object (subsections), information about its data type, and
+possible dependencies.
+
+A label consists of a double colon separated list of the names of
+the objects that encompass the property or subsection, followed by
+its name. For instance, \textbf{x::y::z} corresponds to the JSON object:
+
+\begin{lstlisting}[firstnumber=1,language=json,caption={Simple JSON object.}]
+"x":{ 	
+	"y":{
+		"z":{}
+	}
+}
+\end{lstlisting}
+
+The nature of z will be specified after the label. Possible tags are: 
+
+\begin{description}
+	\item [{Subsection}] The item is another JSON object that can contain another
+	subsections (JSON objects) and properties. 
+	\item [{Integer}] The item is an integer value property. 
+	\item [{Real}] The item is a real value property. 
+	\item [{String}] The item is a string property. 
+	\item [{List}] The item is an array of elements. 
+\end{description}
+
+If the value of the property has to be chosen from a limited list
+of possible choices, this values will be enumerated in a ``value
+in {[}choices{]}\textquotedblright{} clause. ``Optional\textquotedblright{}
+will be added to the end of the descriptor if the property is optional.
+
+Finally, if a property or subsection needs it, a dependency clause
+will be added in front of the label. This dependency clause contains
+the label it depends on and the value it needs to have, or, if it
+just depends on its previous definition, an ``is defined\textquotedblright{}
+clause.
+
+Examples:
+
+{[}\textbf{x::y::z} is defined{]} \textbf{x::y::t}
+
+Means that x::y::t value will be ignored unless x::y::z has a value.
+
+{[}\textbf{x::y::z} == ``m\textquotedblright {]} \textbf{x::y::t}
+
+Means that x::y::t will not be used unless x::y::z is defined and
+has value ``m\textquotedblright .
+
+\begin{framed}
+The rest of this section has been intentionally hidden as it no longer describes pyProCT input script. For 
+updated information please visit the repository at \url{https://github.com/victor-gil-sepulveda/pyProCT}.
+\end{framed}
+

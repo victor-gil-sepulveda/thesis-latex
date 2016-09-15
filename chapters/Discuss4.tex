@@ -1,0 +1,126 @@
+\section{A reliable cluster analysis protocol}
+
+Cluster analysis is a powerful non-supervised analysis technique which aims to group the elements of a data set so
+that its underlying structure gets unveiled. This allows discovering properties of data that would be impossible to
+obtain through other means. 
+
+It has been extensively used in several fields, and computational biology is not an exception. For instance, it is used in
+population analysis of ensembles \cite{shao_clustering_2007}, to summarize simulation output
+\cite{fraccalvieri_self_2013, phillips_validating_2011}, finding native-like structures in homology modeling refinement processes \cite{raval_refinement_2012} or as a key part of Markov State Model (MSM) analysis \cite{pande_everything_2010}.
+
+\subsection{Looking for the best clustering}
+
+The results of a cluster analysis heavily depend on the choice of the algorithm and its parameters (see Fig.
+\ref{fig:pyproct_cluster_methods}). Cluster analysis is also very sensitive to the distance metric
+used. It is known, for instance, that RMSD sensibility can make clustering more difficult, especially when structural
+dissimilarity is high. Also, the so-called ``curse of dimensionality'' can suppose a problem here. Consequently, using
+cluster analysis as a black box can be dangerous: as cluster analysis is usually part of other more complex analyses or
+algorithms, erroneous partitions would directly compromise all derived results. 
+
+\begin{figure}
+
+\fittopageimage{clusterMethods}
+
+\caption{Four cluster analysis have been performed over the same data set. Results can change
+dramatically depending on the algorithm (k-medoids or spectral clustering here) and parameters used (k = 2 or k = 3).}
+
+\label{fig:pyproct_cluster_methods}
+
+\end{figure}
+
+A cluster analysis algorithm is usually considered to be good if it is able to classify the data set so that each of
+them is more similar to the elements of their own group than to the elements in the other groups. However, this
+definition does not always apply. In Fig. \ref{fig:pyproct_cluster_methods} we have used two
+algorithms and two parameter sets, thus obtaining four different clusterings. The two upper clusterings show perfect
+equipartitions of the space; the two lower clusters are able to capture the circular shape to some extent. This leads to a question: which is the correct result? For instance, the first solution would be a good outcome if we embrace the definition above, while the second one would be especially useful in a computer vision scenario where the shape of objects must be identified. The best clustering is, indeed, the one that best fits the user's goals
+\cite{luxburg_tutorial_2007}.
+
+\subsection{pyProCT}
+
+We have created pyProCT
+\cite{gil_pyproct_2014-1} in order to have a robust cluster analysis method that can be used without understanding how cluster analysis algorithms work. The pyProCT work flux starts with users defining a working hypothesis by using their domain expertise and their knowledge about the problem they are facing. This hypothesis describes the results that they would consider useful using just a few
+parameters, and obliges  them to identify the specific goals of their clustering efforts. For instance, a user trying to analyze an MD trajectory of a system he or she is studying may know the following: the approximate number of expected clusters, the expected size of populations, or whether the method is prone to produce ``noisy'' ensembles. 
+
+The second part of the hypothesis is built around the definition of one or more scoring criteria. These are based on simple concepts, such as the degree of cluster separation or cohesion. The hypothesis will be used by pyProCT to perform a clustering exploration with five different clustering algorithms (K-means, Spectral clustering, DBSCAN, hierarchical complete linkage and GROMOS), and different sets of automatically generated parameters. Thanks to
+the previously defined hypothesis and scoring criteria, the software will choose the result that better fulfills the user's expectations.
+
+\subsection{Hypothesis refinement}
+
+It is very likely that the first hypothesis does not  define the user's goals completely. Users may gain knowledge from result inspection, and this knowledge can be used to refine the hypothesis and the cluster again. Although this step is not mandatory, the preferred and more reliable way of working with pyProCT is performing these iterative hypothesis refinement cycles.
+
+\subsection{Software flow detail}
+
+We have implemented pyProCT as a flow of 5 stages: 
+
+\begin{enumerate}
+\item Distance matrix calculation. All clustering algorithms need to calculate the distances (or similarities) of the
+elements in the data set. In the case of protein conformations, this calculation implies a costly superimposition. Therefore, precalculating the distances can be advantageous as the superimposition step can be time-consuming. pyProCT allows the use of RMSD and Euclidean distances. RMSD is calculated using pyRMSD and extends it by adding a way to
+define groups with symmetries, as well as automatic matching of symmetric chains in oligomers in order to obtain
+the minimum RMSD value every time. The Euclidean distance option calculates distances between the center of mass of the selected
+groups.
+\item Algorithm parameterization. A set of parameters is calculated using a different methodology for each algorithm
+based on the working hypothesis.
+\item Cluster analysis. All the algorithms (or a user-defined subset) are used in combination with the parameterizations
+found in the previous stage. This produces an ensemble of clustering solutions that will be filtered in order to avoid
+repetitions and solutions that do not agree with the user's hypothesis. 
+\item Remaining clusterings are scored using both hypothesis and the defined scoring criteria.
+\item The best result is chosen and analyzed
+\end{enumerate}
+pyProCT can take advantage of parallel architectures thanks to pyRMSD. As the workflow is composed of well-defined
+independent tasks, it has been possible to parallelize it using a naive parallelization scheme. A scheduler has been
+added so that tasks can be distributed to more than one processor (at node level, using native Python parallel functions)
+or more than one node (at cluster level, using MPI). A new scheduler type using pyCOMPSs
+\cite{tejedor_pycompss_2015} has  recently been developed
+\cite{alvarez_vecino_optimization_2015}. pyCOMPSs is an annotation-based parallel programming model
+for Python based on COMPSs \cite{tejedor_high-productivity_2012}. The inclusion of this scheduler
+improves the load balance and opens the door to the execution of pyProCT in cloud architectures. 
+
+\subsection{Scoring criteria}
+
+A crucial step in the craft of the working hypothesis is the definition of the scoring criteria. Each scoring
+criterion is a weighted sum of a set of clustering quality functions. Only internal clustering validation indices
+(ICVs) have been used, such as the Silhouette index, Cohesion or Separation, as there is not a correct
+clustering available to use as a reference. The implemented ICVs have been defined and discussed in Section \ref{sec:pyproct_supp_2}. 
+By defining more than one criterion, users can prepare the analysis for more than one
+scenario (e.g. the example in Section \ref{sec:pyproct_supp_6} uses one criterion that defines the common
+description of cluster analysis and another criterion that defines it in terms of graph components). In this case, the scores
+for each criterion will be normalized and the best clustering will be the one with the higher score for any of the
+criteria.
+
+\subsection{Use cases}
+
+Two main use cases have been presented:
+
+\begin{itemize}
+\item Cluster analysis: We have used pyProCT to analyze two different synthetic conformational ensembles. 
+Populations, representatives, and global and per-cluster RMSFs have been automatically extracted from these ensembles. We have also used
+pyProCT to analyze a DNA-ligand simulation where ligands were  in the bulk of the solvent most of the time. We have allowed
+pyProCT to treat them as noise, which lead us to obtain the clusters of the interaction sites. The clusters found were
+in good agreement with the ones obtained using MSM analysis in a prior work
+\cite{lucas_atomic_2014}. 
+\item Redundancy elimination: Storing data, and especially conformational ensembles, is becoming an issue of concern. We
+have introduced a method that is able to eliminate redundant conformations while preserving ensemble cluster
+populations. This makes it possible to process data sets whose distance matrix can not be fitted in memory. We have
+tested it with a \around 100,000 elements trajectory and a \around 1,000,000 elements ensembles with good results (see Section 3.2
+ of the article, and Section \ref{sec:pyproct_supp_5} for more information). The method works by iteratively
+partitioning the data set, cluster analyzing the partitions order to eliminate redundancy, and merging the results, until the
+desired number of frames is reached. 
+\end{itemize}
+
+
+\subsection{Graphical User Interface (GUI)}
+
+pyProCT includes a wizard-like html-based GUI that can assist users in order to generate a correct execution script,
+launch pyProCT executions and visualize results. The result viewer processes pyProCT's result files and shows them in a
+more understandable way making it a very useful tool for hypothesis refinement. 
+
+\subsection{Distribution}
+
+pyProCT is a Python standalone program that can also be integrated into other projects as a library. It is distributed
+as open source software and is maintained in a public GitHub
+repository\footnote{\url{https://github.com/victor-gil-sepulveda/pyProCT}}. It supports the setup.py installation
+method and can also be installed using the pip package manager (which is the most convenient way of installing it as it
+handles package dependencies automatically). pyProCT is far from being finished; code refactorings and new features
+are included regularly (e.g. it has recently been upgraded to use numeric data sets).
+
+\newpage

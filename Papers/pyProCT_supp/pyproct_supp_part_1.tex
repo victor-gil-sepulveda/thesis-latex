@@ -1,0 +1,335 @@
+\subsection{Implemented clustering algorithms}
+
+In this section, we will review the algorithms currently implemented
+in pyProCT. For each of these, we will briefly describe how it works,
+how its parameters are generated (if automatic generation is triggered)
+and the structure of each parameter objects, so that users can define
+them inside the script.
+
+
+\subsubsection[DBSCAN]{DBSCAN \cite{ester_density-based_1996}}
+
+DBSCAN\footnote{Density-Based Spatial Clustering of Applications with Noise} 
+is a density-based clustering algorithm. Density is given by the use
+of 2 parameters: `eps', that defines a distance radius centered on
+one element, and `minpts', that specifies the minimum number of neighboring
+points for that element to be considered part of a cluster. 
+
+The algorithm classifies elements into three categories: not classified,
+noise and core elements. All elements are initially set to `not classified'.
+The `core' elements are those that have at least `minpts' elements
+in an `eps' radius and also the elements inside the `eps' radius of
+a `core' element (which will be border points). All not `core' elements
+are classified as 'noise' and will not be part of the clustering. 
+
+One of the key issues of DBSCAN is the proper selection of its 'eps'
+and `minpts' parameters. High density combinations can produce very
+noisy clusterings (which, depending on the context can be an issue
+or a feature), and low density combinations can easily lead to the
+singleton clustering (a clustering with only one cluster encompassing
+all elements). Because of its dependency on the element density, it
+can have problems detecting clusters if there are different density
+regions in the dataset.
+
+
+\subsubsubsection{Parameters generation strategy} 
+
+The implemented parameters generator is based on the details given
+in the original articles \cite{ester_density-based_1996, sander_density-based_1998-2}
+as well as the method of Ankerst 	extit{et al.} \cite{ankerst_optics_1999-1}.
+Briefly: 
+
+\begin{enumerate}
+\item pyProCT will recreate k-distance lists for some k values ( 
+$ k < \log \left ( \abs{D} \right )$ 
+as indicated in the literature). 
+
+\item For each of the k-distance lists, an `eps' value will be chosen so
+that the generated noise falls between 0\% and the maximum allowed
+noise (plus a 2.5\% margin). The value of k in that k-distance list
+will be used as the value of `minpts' in that parameter pair. 
+\end{enumerate}
+
+In addition, we add the parameter choice suggested by Zhou 	extit{et al.}\cite{zhou_research_2012-1}.
+
+
+\subsubsubsection{Parameters object structure }
+\begin{lstlisting}[language=json,firstnumber=1] 
+{ 	
+	"eps": Real,
+	"minpts": Integer 
+}
+\end{lstlisting}
+
+
+\subsubsection{GROMOS}
+
+First found in the work of Daura 	extit{et al.} \cite{daura_peptide_1999,daura_folding-unfolding_1999-1},
+it is also a density-based algorithm. As it looks that the algorithm
+has no name, we named it after the flag that the g\_cluster tool\cite{berendsen_gromacs_1995}
+receives to use it. With a simpler behaviour than DBSCAN, it was thought
+to adapt to the ideal expected characteristics of datasets coming
+from the conformational search of small peptides (well-separated regions
+centered in metastable states). 
+
+The algorithm repeats a loop that ends when all elements have been
+clustered:
+
+\begin{algorithm}[H]
+\caption{GROMOS algorithm}
+\begin{algorithmic}[1]
+\Input $D$, the data set
+\Input $cutoff$, the cutoff radius
+\Output $C$, a set of clusters
+\State $D_{tmp} \gets D$ \;
+\While{ $D_{tmp} \neq \emptyset$}
+\State $e \gets$ mostDense($D_{tmp}$)\;
+\State $neig \gets$ neighbours($e$,$cutoff$)\;
+\State $c \gets \{e, neig\}$\;
+\State addCluster($c$, $C$)\;
+\State $D_{tmp} \gets D_{tmp} \setminus c$\;
+\EndWhile
+\State \textbf{return} C
+\end{algorithmic}
+\end{algorithm}
+
+\begin{description}
+\item [mostDense()] Find the element with more neighbors inside the given cutoff radius
+(to find the densest zone). 
+\end{description}
+
+\subsubsubsection{Parameters generation strategy}
+
+The goal here is to find a finite range of cutoffs, exactly as it is done with
+the `k' parameter in k-medoids or `num\_clusters' in the random grouping
+algorithm. The minimum value for the cutoff parameter is 0, generating
+a trivial clustering in this case (a clustering where each element
+is a cluster). In order to get an estimation of the maximum value,
+we choose the 3 most separated elements of the dataset. We can ensure
+that the second longest side of the triangle with this 3 elements
+as vertices will be the minimum radius that encompasses all elements
+of the dataset, producing a singleton clustering, and thus it is the
+upper limit of the cutoff range. Once the maximum and minimum are
+known, we can obtain equidistant values for the cutoff within this
+range.
+
+
+\subsubsubsection{Parameters object structure}
+\begin{lstlisting}[language=json,firstnumber=1] 
+{ 	
+	"cutoff": Real
+}
+\end{lstlisting}
+
+
+\subsubsection{Hierarchical clustering}
+
+pyProCT uses an external package \cite{mullner_fastcluster_2013}
+that implements an agglomerative hierarchical clustering algorithm.
+Agglomerative hierarchical algorithms start with all elements of the
+dataset forming single clusters (a trivial clustering) and every step
+it merges the closest clusters by means of a proximity function (only
+`single linkage' and `complete linkage' options can be used). The
+agglomerative step represents the dataset as a tree (dendrogram) that
+has to be cut in order to retrieve the clustering. The distance at
+which the cut is performed is called the cutoff distance.
+
+
+\subsubsubsection{Parameters generation strategy}
+
+Getting the dendogram cut is computationally cheap compared to the
+hierarchical matrix calculation. In this case, pyProCT will generate
+clusterings until it finds the range of cutoffs in which the resulting
+clustering falls within the range of allowed number of clusters. This
+range will be refined in order to get more clustering candidates.
+
+
+\subsubsubsection{Parameters object structure}
+\begin{lstlisting}[language=json, firstnumber=1] 
+{ 	
+	"cutoff": Real, 
+	"method": String in ["single", 
+			   "complete"] 
+}
+\end{lstlisting}
+\begin{description}
+\item [method] If its value is `single', the single linkage method
+is used to calculate the proximity of clusters. This proximity is
+then defined as the minimum distance between any two points in that
+clusters. If `complete' is used instead, the proximity of two clusters
+is measured as the maximum distance between any two elements of different
+clusters. Various combinations of method-cutoff are possible in
+the parameters list, but due to performance reasons, only the `method'
+value of the first parameter object in the list will be used.
+\end{description}
+
+\subsubsection{K-Medoids}
+
+Is a partitional algorithm similar in concept to k-means. Because
+of its beautiful simplicity, our implementation is based on Lloyd's
+k-means algorithm \cite{lloyd_least_1982} instead that on other k-medoids
+specific algorithms (like PAM \cite{kaufman_finding_1990-1}).Roughly the algorithm works as follows:
+
+\begin{algorithm}[H]
+\caption{K-Medoids algorithm}
+\begin{algorithmic}[1]
+\Input $k$, number of clusters
+\Output $C$, a set of clusters
+\State medoids $\gets$ initialSeeding(k)\;
+\While{$\neg$ convergence() $~\land \neg$ maxStepsReached()}%
+\State C $\gets$ labelElements()\;
+\State medoids $\gets$ calculateMedoids(k)\;
+\EndWhile
+\State \textbf{return} C
+\end{algorithmic}	
+\end{algorithm}
+
+\begin{description}
+	\item[convergence()]  Checks if how the labeling of current iteration has changed with respect to the last iteration.
+	\item[labelElements()] Labels each element of the dataset with the cluster of its closer medoid. 
+\end{description}
+
+K-Means-like algorithms will perform better detecting convex clusters.
+
+\subsubsubsection{Parameters generation strategy}
+
+A globally-defined or used-defined maximum number of parameter sets
+(`max') will be generated. Each of the parameter sets will have its
+`method' field set to `EQUIDISTANT' and its `k' field will is calculated as 
+$(min\_clusters+step \times n$ where $0<=n<=max$ and $step$ is $\nicefrac{(max\_clusters-min\_clusters)}{max}$.
+
+\subsubsubsection{Parameters object structure}
+\begin{lstlisting}[language=json,firstnumber=1] 
+{ 	
+	"k": Integer, 	
+	"seeding_type": String in ["RANDOM", 
+			      "EQUIDISTANT", 
+			           "GROMOS"], 	
+	"seeding_max_cutoff": Real 
+}
+\end{lstlisting}
+
+\begin{description}
+	\item [k] Number of clusters to be created. 
+	\item [seeding\_type] Method used for initial medoid seeding. 
+	\item [seeding\_max\_cutoff] Only used when `seeding\_type' =
+	GROMOS. Maximum cutoff radius for the GROMOS algorithm to generate
+	the initial medoids.
+\end{description}
+
+The algorithm is very sensitive to the initial seeding configuration
+(the initial placement of the medoids). Three seeding methods are
+provided: 
+
+\begin{description}
+	\item [RANDOM] Uses a random choice of elements from the dataset
+	as initial medoids. If used, the parameter will be replicated `tries'
+	times (default: 10) with different random seeds. 
+	\item [EQUIDISTANT] Divides the dataset in k consecutive parts
+	and uses their central element as medoid. Useful if we suspect that
+	sequence order and geometrical likeness are correlated (like in MD
+	sequences). 
+	\item [GROMOS] It will execute GROMOS algorithm with decreasing
+	cutoffs until `k' or more clusters are generated. Initial medoids
+	will be the centers of this clusters. It is specially useful if clusters
+	were well separated. 
+\end{description}
+
+
+\subsubsection{Spectral Clustering}
+
+This algorithm uses the spectral properties of the dataset (viewed
+as a graph). It is said that it can achieve better results than k-means
+or hierarchical clustering algorithms.
+
+The implemented version of the algorithm is described in the detailed
+review written by Ulrike von Luxburg \cite{luxburg_tutorial_2007},
+based on the Normalized Spectral Clustering\cite{shi_normalized_2000}).
+It needs to perform six steps:
+
+\begin{algorithm}[H]
+\caption{Spectral clustering algorithm}
+	\begin{algorithmic}[1]
+		\Input {$M$, a distance matrix}
+		\Input {$D$, initial data set}
+		\Input {$k$, number of clusters}
+		\Output $C$, a set of clusters
+		\State $A \gets$ adjacencyMatrix($M$)\;
+		\State $Deg \gets$ degree($A$)\;
+		\State $L \gets$ laplacian($A$, $Deg$)\;
+		\State $eigvec \gets$ caclEigenvectors($L$,$k$)\;
+		\State $C_e \gets$ kMedoids($eigvec$, $k$)\;
+		\State $C \gets$ map($C_e$, D)\;
+		\State \textbf{return} C
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{description}
+	\item [adjacencyMatrix()] Constructs a similarity graph by applying a kernel to the distance matrix. 
+	\item [degree()] Computes the degree matrix and adjacency matrix. 
+	\item [laplacian()] Computes the (unnormalized) Laplacian. 
+	\item [caclEigenvectors()] Computes the first $k$ generalized eigenvectors. 
+	\item [kMedoids()] Clusters the eigenvector matrix as if each row was a point. 
+	\item [map()] Maps each of the eigenvectors to the elements of the dataset (row $i$ corresponds to element $i$).
+\end{description}
+
+\subsubsubsection{Parameters generation strategy}
+
+The sigma global parameter, used to calculate the adjacency matrix,
+can be set by the user. If not, pyProCT will use a local sigma calculation
+strategy \cite{zelnik-manor_self-tuning_2004-1} to build it. `k' parameter
+is generated using the same approach than in the k-medoids case.
+
+
+\subsubsubsection{Parameters object structure}
+\begin{lstlisting}[language=json,firstnumber=1] 
+{ 
+	"k": Integer, 
+	"use_k_medoids": Boolean 
+}
+\end{lstlisting}
+
+\begin{description}
+\item [use\_k\_medoids] \hfill \\If set to true, the k-medoids algorithm will
+be used to cluster eigenvalues. If set to false, k-means will be used
+instead.
+\end{description}
+
+\subsubsection{Random Grouping}
+
+This algorithm assigns random cluster labels to the different elements
+in the dataset. It cannot be considered a real clustering algorithm,
+but it is useful to compare the behaviour of certain ICVs with more
+sphisticated algorithms. It has been implemented in two ways: 
+
+\begin{description}
+\item [FakeDistributionRandomClusteringAlgorithm] \hfill \\Generates clusters
+with certain per cluster population distribution (e.g. First cluster
+70\% of the elements, second 20\%, third 5\% and so on) 
+\item [RandomClusteringAlgorithm] \hfill \\Generates a totally random clustering
+(random number of clusters and random cluster assignment) or a random
+clustering with a predefined number of clusters.
+\end{description}
+
+\subsubsection{Parameters generation strategy}
+
+The same strategy used in k-means to calculate the k value will be used 
+here for num\_clusters.
+
+\subsubsection{Parameters object structure}
+
+Only RandomClusteringAlgorithm is accessible through the script, and
+it only needs one parameter: 
+
+\begin{lstlisting}[language=json,firstnumber=1] 
+{ 
+	"num_clusters": List(Integer)
+} 
+\end{lstlisting}
+
+\begin{description}
+\item [num\_clusters] \hfill \\Number of clusters to be created (analogue
+to `k' in other algorithms).
+\end{description}
+
+

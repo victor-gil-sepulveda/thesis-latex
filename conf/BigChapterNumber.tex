@@ -1,0 +1,19 @@
+%\usepackage{color}
+%\usepackage{tgtermes}
+%\usepackage{titlesec}
+
+\newlength{\mytitlewidth}
+\definecolor{chaptergrey}{rgb}{0.7,0.7,0.7}
+\AtBeginDocument{
+  \settowidth{\mytitlewidth}{\normalfont\fontsize{60}{0}\selectfont\chaptername}
+}
+
+\newcommand{\setchaptertitle}[1]{\parbox[t]{\mytitlewidth}{\raggedleft#1}}
+\newcommand{\setchapternumber}{%
+  \fontsize{100}{0}\color{chaptergrey}\selectfont\thechapter}
+
+\titleformat{\chapter}[display]
+  {\raggedleft\normalfont\fontsize{60}{0}\selectfont}
+  {\filleft\setchapternumber}
+  {15pt}
+  {\huge\setchaptertitle}

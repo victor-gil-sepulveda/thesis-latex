@@ -1,0 +1,88 @@
+\section[Efficient and reliable analysis]{Efficient and reliable analysis of huge conformational ensembles}
+
+In the computational biology field,  the evolution of hardware during the last decade has allowed tools to run faster, thus making them able to produce larger output in the same amount of time. Nowadays, the efficient storage and analysis of these increasingly big results can become a problem.
+ 
+This is indeed our case, since one of our objectives is the development of faster conformational sampling tools, capable of being applied in VHTS. That is why we have focused on the improvement of the efficiency and robustness of the analysis of large ensembles of biomolecular
+structures.
+
+\subsection{Efficient calculation of collective superimposition operations}
+
+Collective superimposition operations are fundamental routines in structural biology related
+analysis methods and can become a bottleneck if data sets are large. We have implemented an efficient alternative to performing these operations and RMSD calculations:
+pyRMSD \cite{gil_pyrmsd_2013-1}. We have focused on three common use cases:
+
+\begin{itemize}
+\item Superimposition of a given conformation vs. the others in the ensemble (e.g. the first frame of a trajectory is usually
+compared to the others in order to calculate an RMSD profile).
+\item Pairwise superimposition of all the conformations of the ensemble. A pairwise superimposition of all conformations
+of the ensemble would be necessary to build an RMSD matrix to be used by a clustering algorithm
+\item Iterative superimposition of all the conformations of the ensemble. All conformations can be iteratively
+superimposed before calculating the covariance matrix for a PCA. 
+\end{itemize}
+Python is an object-oriented interpreted language that seems to be currently gaining momentum among researchers. This may be due to the great availability of scientific libraries or to the possibility of creating software prototypes without effort. 
+
+\begin{sidewaysfigure}
+
+\fittopageimage{pyRMSD_uml}
+
+\caption{ Pseudo-UML (Unified Modelling Language) diagram showing some key classes of pyRMSD as well as
+the three-layer design (Python classes, Python C interface and C++ classes).}
+
+\label{fig:pyrmsd_uml}
+
+\end{sidewaysfigure}
+
+\subsection{Superimposition algorithms}
+
+pyRMSD has been designed as a Python library implementing a three-layer structure (see Fig.
+\ref{fig:pyrmsd_uml}). The first layer is written in pure Python and contains high-level objects and
+functions. The second layer describes the C Python API interface, which links the low-level functions of the third layer
+with the high-level functionalities of the first one. The third layer is a full C++ library implementing the
+superimposition and RMSD calculation functions. Thanks to this structure, pyRMSD can be included effortlessly in other
+Python or C++ projects, ensuring the reuse of the code.
+
+
+
+pyRMSD implements Kabsch's algorithm \cite{kabsch_solution_1976}, Heisterberg's algorithm (aka
+QTRFIT) \cite{heisterberg_qtrfit_1990} and Theobald's algorithm (QCP)
+\cite{theobald_rapid_2005-1}. These three methods try to solve the superimposition problem by
+different means, but with the common goal of finding a rotation matrix (or equivalent quaternion) that minimizes the
+error function:
+
+\begin{equation}
+e^2 = \frac{1}{n} \sum_n \left| x_n - U y_n \right| ^2 .
+\end{equation}
+
+
+The inclusion of these three algorithms in one package obeys two reasons: the need to compare algorithm performance, and the necessity to provide users with an alternative in case they need to overcome any of the problems associated with these algorithms (e.g. Kabsch's can potentially produce rotoreflection matrices \cite{umeyama_least-squares_1991} and QCP is known to have bad convergence).
+
+\subsection{Parallelization and performance}
+
+The core functions of the third layer have been parallelized in order to boost performance. All three algorithms have a
+serial and OpenMP version to take advantage of multicore CPUs. In addition, QCP also implements a CUDA version that can run in Nvidia GPUs with both single and double floating point precision. This is has been the first open source CUDA implementation of this algorithm so far.
+
+When testing the ``one conformation versus the others'' use case in a 30k snapshots trajectory, the faster algorithm showed a
+\around2.6x speedup using OpenMP with six threads. Improvements are more noticeable when testing the calculations of RMSD
+matrices, with speedups ranging from 5x (OpenMP) to 11x faster (CUDA using the ``in-memory matrix'' alternative). 
+
+Furthermore, the comparison of pyRMSD with g\_rmsd \cite{berendsen_gromacs_1995}, a RMSD matrix
+calculation specialized piece of software, shows that the former is more than four times faster. We have also implemented
+several RMSD matrix calculation examples using non-specific software (see Supplementary materials S6 of the
+publication). The best-performing function uses Prody, a well consolidated Python package, and  is 50x slower than
+pyRMSD.
+
+Our profilings have revealed that, when using distance matrices, the contribution of the matrix access time starts to become prominent if the superimposition bottleneck is eliminated. This behaviour can be explained based on Python's inherent overhead in array element access operations, e.g. Python checks internally that these indices are integers or that they are pointing to a legal position of the array. As these checks are an automatic part of the runtime, we needed to create the ``CondensedMatrix'' object. This is a C Python object that stores a square symmetric matrix in a memory efficient
+way and bypasses indexing checks to decrease access overhead to almost zero, adding a 6x automatic speed up to any
+function using it.
+
+\subsection{Distribution}
+
+pyRMSD is distributed as open source software and is maintained in a public GitHub
+repository\footnote{\url{https://github.com/victor-gil-sepulveda/pyRMSD}}. It can be easily installed using customary
+Python installation methods (setup.py and pip remote installation). We have also added a new makefile-like setup script
+that allows defining different hardware parameters and environments so that users can make the most of their machine architectures. This installation script also overcomes some current  Python limitations related to CUDA code compilation.
+
+\newpage
+
+
+

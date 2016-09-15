@@ -1,0 +1,89 @@
+\chapter{Objectives} 
+
+As we have seen in the introduction, the pharmaceutical industry is actively looking for new ways of boosting the efficiency
+and effectiveness of their R\&D programmes. The use of computational modeling tools in the drug discovery pipeline is
+having a positive impact on research performance, since  in silico experiments are usually faster and cheaper that their
+real counterparts. 
+
+We can envisage a scenario where almost all steps of the drug discovery pipeline are performed by fast and specialized
+software\footnote{The company Nimbus Therapeutics is currently one of the best examples of this vision. Its drug
+discovery processes rely heavily in computational tools. It is currently in partnership with Monsanto Growth Ventures
+and Shire HTG (Human Genetics Group) and has attracted top players in the pharmaceutical (Pfizer) and technological
+industries (Bill Gates, Shr\"odinger).} running on custom hardware architectures. 
+
+This vision can only be achieved through technical improvements, both in hardware and software, and through the research of new and more
+robust algorithms that can improve the accuracy and quality of results. In particular, we believe that these developments will be important in improving conformational sampling in VHTS, where current techniques do not allow screening thousands of compounds accurately. 
+This thesis aims to work in this line, turning PELE into a faster and more efficient tool to add receptor flexibility. Besides, we have addressed the difficulties of analyzing extensive data associated with massive simulation production.
+
+In this work, we will focus on the improvements achieved in PELE. 
+
+\section{Objective: Technical improvement of PELE}
+
+PELE software is currently well established in the academic environment and is already penetrating the pre-discovery phase
+\ignore{\hl{more info on this? AZ collaboration footnote: a collaboration with... started...}} thanks to its atomic-detail 
+conformational sampling and protein-ligand binding prediction
+capabilities. This software is able to perform faster simulations than MD and is more accurate but still slower than regular
+VHTS software. Unfortunately, performance is a matter of concern to VHTS protocols, as the size of compound libraries
+can be vast. 
+
+PELE could clearly earn a place in VS protocols if execution times werelowered. Improving its performance would imply
+optimizing the code, and adapting it to take full advantage of the newest parallel hardware architectures. One of the
+goals of this work is to \textbf{enhance the technical features of PELE by performing a complete rewriting of its code in order to 
+optimize and parallelize its most computationally demanding parts}. 
+
+\section{Objective: Algorithmic improvement of PELE}
+
+As highlighted in the introduction, in the context of protein-ligand interactions the way  algorithms model
+flexibility is one of the keys to success. Probably, this is the reason why finding the balance between accurate
+flexibility modelling and computational performance has become a matter of concern for the development of new software.
+This is especially important for the tools typically used in VHTS pipelines, where a detailed simulation of flexibility
+is usually sacrificed for the sake of speed. However, improving the reliability of solutions would help to produce less
+false positives and less false negatives, thus favoring the successive stages of the drug discovery pipeline. \textbf{Our goal is to
+perfect and speed up PELE flexibility handling (with a minimum performance impact) in order to improve the quality of its results and 
+convert it into an alternative to current VHTS software}.
+
+\section{Objective: Efficient and reliable analysis of huge conformational ensembles}
+
+Performance improvements are usually translated into a shortening of execution time. Scientists working with
+conformational sampling and ligand binding simulation software often make the most of this extra time in three ways:
+i) using more accurate and computationally intensive algorithms that increase the theoretical correctness and quality
+of results, ii) increasing the size of the systems studied or, iii) choosing to run simulations over longer
+periods of time. In this last scenario, it is very likely that the size of the output grows considerably. 
+
+Analyzing large sets of conformations is highly demanding due, mainly, to the own nature of this data. Indeed, structural superimposition
+is the requirement of many popular conformational analysis methods, and this does require a significative amount of
+computational power and time. Moreover, software implementing superimposition algorithms are often limited to the
+pairwise case, which makes them an underperforming solution when applied to ensembles. \textbf{In order to avoid this, we aim
+to implement an efficient solution for the calculation of collective superimposition operations}. 
+
+Also, as the size of results becomes larger, so does the difficulty of analyzing them and the chances of making
+errors. Cluster analysis techniques, which are unsupervised machine learning methods, have become a standard solution to this
+issue. However, its results can be unpredictable if used as a black box and no further validation checks are performed.
+\textbf{We want to address this challenge through the implementation of a reliable cluster analysis protocol}.
+
+
+\section{Summary of the objectives}
+
+\begin{enumerate}
+	\item Technical improvement of PELE
+		\begin{enumerate}
+			\item Complete rewrite of the code 
+			\item Optimization and parallelization of the most computationally demanding parts 
+		\end{enumerate}
+
+    \item Algorithmic improvement of PELE
+		\begin{enumerate}
+			\item Perfect PELE's flexibility handling in order to improve results quality 
+		\end{enumerate}	
+
+    \item Efficient and reliable analysis of large conformational ensembles 
+		\begin{enumerate}
+			\item Implementation of an efficient solution for the calculation of collective superimposition operations 
+			\item Implementation of a reliable cluster analysis protocol
+		\end{enumerate}
+	
+\end{enumerate}
+
+
+
+
